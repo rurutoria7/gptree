@@ -16,7 +16,7 @@
 [NodeLaunch("thread")]
 [NodeId("Entry", 0)]
 void EntryFunction(
-    [MaxRecords(1)]
+    [MaxRecords(2)]
     [NodeId("Stem")]
     NodeOutput<GenerateTreeRecord> output,
 
@@ -108,11 +108,15 @@ void EntryFunction(
     skyboxRecord.Get().test = 0;
     skyboxRecord.OutputComplete();
 
-    // draw tree
-    ThreadNodeOutputRecords<GenerateTreeRecord> outputRecord = output.GetThreadNodeOutputRecords(1);
-    // create tree record at origin with seed
-    outputRecord.Get() = CreateTreeRecord(float3(0, 0, 0), qRotateX(PI*-.5), LoadPersistentConfigUint(PersistentConfig::SEED));
-    outputRecord.OutputComplete();
+    // draw tree 1
+    ThreadNodeOutputRecords<GenerateTreeRecord> outputRecord1 = output.GetThreadNodeOutputRecords(1);
+    outputRecord1.Get() = CreateTreeRecord(float3(-7, 0, 0), qRotateX(PI*-.5), LoadPersistentConfigUint(PersistentConfig::SEED));
+    outputRecord1.OutputComplete();
+
+    // draw tree 2
+    ThreadNodeOutputRecords<GenerateTreeRecord> outputRecord2 = output.GetThreadNodeOutputRecords(1);
+    outputRecord2.Get() = CreateTreeRecord(float3(7, 0, 0), qRotateX(PI*-.5), LoadPersistentConfigUint(PersistentConfig::SEED) + 100);
+    outputRecord2.OutputComplete();
 }
 
 // ============================ UI ====================
