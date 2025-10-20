@@ -1,7 +1,13 @@
-# Multi Tree & Instance-Level Culling
+# Multi Tree
 
-1. Find Work Graph Input Record, Add Another input.
-    - knowing how to input multiple record
+- We want to move tree dispatching from entry to another broacasting node
+- Entry Node now Dispatch A Broacasting Node "TreeRoots"
+    - TreeRoots's Dispatch Grid is Specify by Entry Node
+    - Every TreeRoots Thread Dispatch A Tree
 
-# Dumping Geometry
+# Static Object
 
+- Need to Add Meshlet Logic
+    - D3D12 Sample
+    - But Only GPU code are running here
+        - hard code simple geometry

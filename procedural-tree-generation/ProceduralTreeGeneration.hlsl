@@ -6,6 +6,7 @@
 #endif
 
 #include "Skybox.h"
+#include "SimpleCube.h"
 #include "SplineSegment.h"
 #include "Leaves.h"
 #include "Fruits.h"
@@ -16,13 +17,17 @@
 [NodeLaunch("thread")]
 [NodeId("Entry", 0)]
 void EntryFunction(
-    [MaxRecords(2)]
-    [NodeId("Stem")]
-    NodeOutput<GenerateTreeRecord> output,
+    [MaxRecords(1)]
+    [NodeId("TreeRoots")]
+    NodeOutput<TreeRootsRecord> treeRootsOutput,
 
     [MaxRecords(1)]
     [NodeId("Skybox")]
     NodeOutput<SkyboxRecord> skyboxOutput,
+
+    [MaxRecords(1)]
+    [NodeId("SimpleCube")]
+    NodeOutput<SimpleCubeRecord> simpleCubeOutput,
 
     [MaxRecords(1)]
     [NodeId("UserInterface")]
@@ -108,15 +113,53 @@ void EntryFunction(
     skyboxRecord.Get().test = 0;
     skyboxRecord.OutputComplete();
 
-    // draw tree 1
-    ThreadNodeOutputRecords<GenerateTreeRecord> outputRecord1 = output.GetThreadNodeOutputRecords(1);
-    outputRecord1.Get() = CreateTreeRecord(float3(-7, 0, 0), qRotateX(PI*-.5), LoadPersistentConfigUint(PersistentConfig::SEED));
-    outputRecord1.OutputComplete();
+    // draw simple cube
+    ThreadNodeOutputRecords<SimpleCubeRecord> simpleCubeRecord = simpleCubeOutput.GetThreadNodeOutputRecords(1);
+    simpleCubeRecord.Get().test = 0;
+    simpleCubeRecord.OutputComplete();
 
-    // draw tree 2
-    ThreadNodeOutputRecords<GenerateTreeRecord> outputRecord2 = output.GetThreadNodeOutputRecords(1);
-    outputRecord2.Get() = CreateTreeRecord(float3(7, 0, 0), qRotateX(PI*-.5), LoadPersistentConfigUint(PersistentConfig::SEED) + 100);
-    outputRecord2.OutputComplete();
+    // dispatch TreeRoots broadcasting node to generate trees
+    ThreadNodeOutputRecords<TreeRootsRecord> treeRootsRecord = treeRootsOutput.GetThreadNodeOutputRecords(1);
+    treeRootsRecord.Get().dispatchGrid = uint3(5, 5, 1);  // 5x5 grid of trees
+    treeRootsRecord.OutputComplete();
+}
+
+// ============================ TreeRoots Broadcasting Node ====================
+
+[Shader("node")]
+[NodeLaunch("broadcasting")]
+[NodeMaxDispatchGrid(16, 16, 1)]  // Max grid for dynamic dispatch
+[NumThreads(1, 1, 1)]
+[NodeId("TreeRoots")]
+void TreeRootsNode(
+    DispatchNodeInputRecord<TreeRootsRecord> input,
+
+    [MaxRecords(1)]
+    [NodeId("Stem")]
+    NodeOutput<GenerateTreeRecord> treeOutput,
+
+    uint3 dispatchThreadID : SV_DispatchThreadID
+)
+{
+    const uint3 gridSize = input.Get().dispatchGrid;
+    const float spacing = 7.0f;  // Distance between trees
+
+    // Calculate tree position based on thread ID in grid layout on the floor (X-Z plane)
+    // Center the grid around origin
+    const float3 position = float3(
+        (dispatchThreadID.x - (gridSize.x - 1) * 0.5f) * spacing,  // X position
+        0,                                                           // Y = 0 (floor level)
+        (dispatchThreadID.y - (gridSize.y - 1) * 0.5f) * spacing   // Z position (use Y dimension for Z axis)
+    );
+
+    // Each thread generates one tree
+    // Use thread ID to vary the seed for different trees
+    const uint baseSeed = LoadPersistentConfigUint(PersistentConfig::SEED);
+    const uint treeSeed = baseSeed + dispatchThreadID.x + dispatchThreadID.y * gridSize.x;
+
+    ThreadNodeOutputRecords<GenerateTreeRecord> outputRecord = treeOutput.GetThreadNodeOutputRecords(1);
+    outputRecord.Get() = CreateTreeRecord(position, qRotateX(PI * -0.5), treeSeed);
+    outputRecord.OutputComplete();
 }
 
 // ============================ UI ====================

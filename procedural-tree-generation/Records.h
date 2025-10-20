@@ -20,6 +20,14 @@ struct SkyboxRecord {
     uint test;
 };
 
+struct SimpleCubeRecord {
+    uint test;
+};
+
+struct TreeRootsRecord {
+    uint3 dispatchGrid : SV_DispatchGrid;
+};
+
 struct TreeTransform {
     float3 pos;
     float4 rot;
