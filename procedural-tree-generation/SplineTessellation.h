@@ -95,9 +95,16 @@ SegmentTessellationData ComputeVisibilityAndTessellationData(
     const uint3 sip                  = PackSegmentInfo(si);
     const bool  draw                 = (max(fromPixelDiameter, toPixelDiameter) > (minBranchPixelRadius * random::Random(sip.x, sip.y, sip.z, 1337)));
 
-    // Segment frustum culling omitted here for simplicity
+    // Frustum culling using bounding sphere
+    const float3 segmentCenter = (cageFrom.pos + cageTo.pos) * 0.5;
+    const float segmentLength = distance(cageFrom.pos, cageTo.pos);
+    const float maxRadius = max(fromRingRadius, toRingRadius);
+    const float boundingSphereRadius = sqrt(maxRadius * maxRadius + (segmentLength * 0.5) * (segmentLength * 0.5));
 
-    if (!draw) {
+    const Frustum frustum = GetViewFrustum();
+    const bool inFrustum = SphereInFrustum(frustum, segmentCenter, boundingSphereRadius);
+
+    if (!draw || !inFrustum) {
         return result;
     }
 
